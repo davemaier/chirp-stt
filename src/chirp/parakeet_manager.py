@@ -1,0 +1,79 @@
+from __future__ import annotations
+
+import logging
+from typing import List, Optional, Sequence
+
+import numpy as np
+import onnx_asr
+
+try:
+    import onnxruntime as ort
+except ImportError:  # pragma: no cover - optional dependency
+    ort = None  # type: ignore[assignment]
+
+
+PROVIDER_MAP = {
+    "cpu": ["CPUExecutionProvider"],
+    "cuda": ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    "directml": ["DmlExecutionProvider", "CPUExecutionProvider"],
+}
+
+
+class ParakeetManager:
+    def __init__(
+        self,
+        *,
+        model_name: str,
+        quantization: Optional[str],
+        provider_key: str,
+        threads: Optional[int],
+        logger: logging.Logger,
+    ) -> None:
+        self._logger = logger
+        self._model_name = model_name
+        self._quantization = quantization
+        self._providers = self._resolve_providers(provider_key)
+        self._session_options = self._build_session_options(threads)
+        self._model = self._load_model()
+
+    def _resolve_providers(self, key: str) -> Sequence[str]:
+        normalized = key.lower()
+        providers = PROVIDER_MAP.get(normalized)
+        if not providers:
+            self._logger.warning("Unknown provider '%s', falling back to CPU", key)
+            providers = PROVIDER_MAP["cpu"]
+        return providers
+
+    def _build_session_options(self, threads: Optional[int]):
+        if not threads or threads < 1:
+            return None
+        if ort is None:
+            self._logger.warning("onnxruntime not available; ignoring threads=%s", threads)
+            return None
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = threads
+        options.inter_op_num_threads = threads
+        return options
+
+    def _load_model(self):
+        self._logger.info(
+            "Loading Parakeet model %s (quantization=%s, providers=%s)",
+            self._model_name,
+            self._quantization or "none",
+            ",".join(self._providers),
+        )
+        return onnx_asr.load_model(
+            self._model_name,
+            quantization=self._quantization,
+            providers=self._providers,
+            sess_options=self._session_options,
+        )
+
+    def transcribe(self, audio: np.ndarray, *, sample_rate: int = 16_000, language: Optional[str] = None) -> str:
+        if audio.ndim > 1:
+            audio = audio.reshape(-1)
+        waveform = audio.astype(np.float32, copy=False)
+        if waveform.size == 0:
+            return ""
+        result = self._model.recognize(waveform, sample_rate=sample_rate, language=language)
+        return result if isinstance(result, str) else str(result)

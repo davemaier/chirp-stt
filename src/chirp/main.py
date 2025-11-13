@@ -1,0 +1,107 @@
+from __future__ import annotations
+
+import threading
+
+from .audio_capture import AudioCapture
+from .audio_feedback import AudioFeedback
+from .config_manager import ConfigManager
+from .keyboard_shortcuts import KeyboardShortcutManager
+from .logger import get_logger
+from .parakeet_manager import ParakeetManager
+from .text_injector import TextInjector
+
+
+class ChirpApp:
+    def __init__(self) -> None:
+        self.logger = get_logger()
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.load()
+
+        self.keyboard = KeyboardShortcutManager(logger=self.logger)
+        self.audio_capture = AudioCapture(status_callback=self._log_capture_status)
+        self.audio_feedback = AudioFeedback(logger=self.logger, enabled=self.config.audio_feedback)
+        self.parakeet = ParakeetManager(
+            model_name=self.config.parakeet_model,
+            quantization=self.config.parakeet_quantization,
+            provider_key=self.config.onnx_providers,
+            threads=self.config.threads,
+            logger=self.logger,
+        )
+        self.text_injector = TextInjector(
+            keyboard_manager=self.keyboard,
+            logger=self.logger,
+            paste_mode=self.config.paste_mode,
+            word_overrides=self.config.word_overrides,
+            whisper_prompt=self.config.whisper_prompt,
+            clipboard_behavior=self.config.clipboard_behavior,
+            clipboard_clear_delay=self.config.clipboard_clear_delay,
+        )
+
+        self._recording = False
+        self._lock = threading.Lock()
+
+    def run(self) -> None:
+        try:
+            self._register_hotkey()
+            self.logger.info("Chirp ready. Toggle recording with %s", self.config.primary_shortcut)
+            self.keyboard.wait()
+        except KeyboardInterrupt:
+            self.logger.info("Interrupted, exiting.")
+
+    def _register_hotkey(self) -> None:
+        try:
+            self.keyboard.register(self.config.primary_shortcut, self.toggle_recording)
+        except Exception:
+            self.logger.error("Unable to register primary shortcut. Run as Administrator on Windows.")
+            raise
+
+    def toggle_recording(self) -> None:
+        with self._lock:
+            if not self._recording:
+                self._start_recording()
+            else:
+                self._stop_recording()
+
+    def _start_recording(self) -> None:
+        try:
+            self.audio_capture.start()
+        except Exception as exc:
+            self.logger.error("Audio capture start failed: %s", exc)
+            return
+        self._recording = True
+        self.audio_feedback.play_start(self.config.start_sound_path)
+        self.logger.info("Recording started")
+
+    def _stop_recording(self) -> None:
+        waveform = self.audio_capture.stop()
+        self._recording = False
+        self.audio_feedback.play_stop(self.config.stop_sound_path)
+        self.logger.info("Recording stopped (%s samples)", waveform.size)
+        threading.Thread(target=self._transcribe_and_inject, args=(waveform,), daemon=True).start()
+
+    def _transcribe_and_inject(self, waveform) -> None:
+        if waveform.size == 0:
+            self.logger.warning("No audio samples captured")
+            return
+        try:
+            text = self.parakeet.transcribe(waveform, sample_rate=16_000, language=self.config.language)
+        except Exception as exc:
+            self.logger.exception("Transcription failed: %s", exc)
+            return
+        if not text.strip():
+            self.logger.info("Transcription empty; skipping paste")
+            return
+        self.logger.info("Transcription: %s", text)
+        self.text_injector.inject(text)
+
+    def _log_capture_status(self, message: str) -> None:
+        self.logger.debug("Audio status: %s", message)
+
+
+def main() -> None:
+    app = ChirpApp()
+    app.run()
+
+
+if __name__ == "__main__":
+    main()
