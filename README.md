@@ -33,13 +33,17 @@ Chirp is a Windows dictation app that runs fully locally using Parakeet speech-t
    ```
 
 ## Running
-- Daily usage:
+- Daily usage (preferred, works even on systems that block `.exe` launchers):
   ```powershell
-  uv run chirp
+  uv run python -m chirp.main
+  ```
+- Verbose/debug logging:
+  ```powershell
+  uv run python -m chirp.main -- --verbose
   ```
 - CLI help and options:
   ```powershell
-  uv run chirp --help
+  uv run python -m chirp.main -- --help
   ```
 
 ## Removal

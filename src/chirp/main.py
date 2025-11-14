@@ -137,8 +137,8 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Chirp – Windows dictation app using local Parakeet STT (CPU-only).",
         epilog=(
             "Usage:\n"
-            "  uv run chirp-setup   # one-time: download the Parakeet model files\n"
-            "  uv run chirp         # daily: start Chirp and use the configured hotkey\n\n"
+            "  uv run python -m chirp.setup   # one-time: download the Parakeet model files\n"
+            "  uv run python -m chirp.main    # daily: start Chirp and use the configured hotkey\n\n"
             "While Chirp is running, press your primary shortcut (default: win+alt+d)\n"
             "to toggle recording on and off."
         ),
