@@ -7,6 +7,8 @@ import threading
 import time
 from typing import Optional, Sequence
 
+import numpy as np
+
 from .audio_capture import AudioCapture
 from .audio_feedback import AudioFeedback
 from .config_manager import ConfigManager
@@ -149,13 +151,56 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable verbose debug logging",
     )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Smoke-test the pipeline without registering hotkeys or capturing audio",
+    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     args = _build_parser().parse_args(argv)
+    if args.check:
+        _run_smoke_check(verbose=args.verbose)
+        return
     app = ChirpApp(verbose=args.verbose)
     app.run()
+
+
+def _run_smoke_check(*, verbose: bool = False) -> None:
+    logger = get_logger(level=logging.DEBUG if verbose else logging.INFO)
+    logger.info("Running Chirp smoke check")
+    config_manager = ConfigManager()
+    config = config_manager.load()
+    try:
+        model_dir = config_manager.model_dir(config.parakeet_model, config.parakeet_quantization)
+        parakeet = ParakeetManager(
+            model_name=config.parakeet_model,
+            quantization=config.parakeet_quantization,
+            provider_key=config.onnx_providers,
+            threads=config.threads,
+            logger=logger,
+            model_dir=model_dir,
+        )
+    except ModelNotPreparedError as exc:
+        logger.error(str(exc))
+        raise SystemExit(1) from exc
+
+    text_injector = TextInjector(
+        keyboard_manager=KeyboardShortcutManager(logger=logger),
+        logger=logger,
+        paste_mode=config.paste_mode,
+        word_overrides=config.word_overrides,
+        post_processing=config.post_processing,
+        clipboard_behavior=False,
+        clipboard_clear_delay=config.clipboard_clear_delay,
+    )
+
+    dummy_audio = np.zeros(16_000, dtype=np.float32)
+    transcription = parakeet.transcribe(dummy_audio, sample_rate=16_000, language=config.language)
+    processed = text_injector.process(transcription or "test")
+    logger.info("Smoke check passed. Processed sample: %s", processed)
 
 
 if __name__ == "__main__":

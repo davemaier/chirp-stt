@@ -28,7 +28,7 @@ class AudioCapture:
         if self._stream is not None:
             return
 
-        def _callback(indata: np.ndarray, frames: int, time, status) -> None:  # type: ignore[name-defined]
+        def _callback(indata: np.ndarray, _frames: int, _time, status) -> None:  # type: ignore[name-defined]
             if status and self._status_callback:
                 self._status_callback(str(status))
             with self._lock:
@@ -58,5 +58,3 @@ class AudioCapture:
             audio = audio.reshape(-1)
         return audio.astype(np.float32, copy=False)
 
-    def is_active(self) -> bool:
-        return self._stream is not None
