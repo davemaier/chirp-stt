@@ -175,7 +175,7 @@ cython_debug/
 *.h5
 *.pkl
 *.model
-models/
+/src/chirp/assets/models/
 data/
 
 # Audio files (except assets)
@@ -187,7 +187,7 @@ data/
 !src/chirp/assets/*.wav
 
 # Configuration and user data
-config.json
+/config.json
 user_data/
 logs/
 *.log
