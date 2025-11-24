@@ -1,4 +1,4 @@
-# Chirp
+# Chirp-STT
 
 Chirp is a Windows dictation app that runs fully locally using ParakeetV3 STT and is managed end-to-end with `uv`. Chirp does not require the ability to run executable files (like .exe) on Windows. It was designed so that if you're allowed to run Python on your machine, you can run Chirp. 
 
