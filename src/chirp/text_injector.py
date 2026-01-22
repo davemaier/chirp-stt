@@ -82,9 +82,13 @@ class TextInjector:
         self._clipboard_clear_delay = max(0.1, clipboard_clear_delay)
 
     def process(self, text: str) -> str:
-        result = text.strip()
+        # Sanitize input: remove non-printable characters (e.g. control codes) to prevent injection
+        safe_chars = [ch for ch in text if ch.isprintable() or ch in " \t\n"]
+        result = "".join(safe_chars).strip()
+
         if not result:
             return result
+
         result = self._apply_word_overrides(result)
         result = _normalize_punctuation(result)
         result = self._style.apply(result)
