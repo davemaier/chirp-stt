@@ -92,6 +92,17 @@ class TextInjector:
 
     def inject(self, text: str) -> None:
         processed = self.process(text)
+
+        # On Windows, type directly to avoid unnecessary clipboard exposure
+        if sys.platform.startswith("win"):
+            time.sleep(0.12)  # Brief delay for focus settling
+            try:
+                self._keyboard.write(processed)
+            except Exception as exc:  # pragma: no cover - runtime safety
+                self._logger.error("Text injection failed: %s", exc)
+            return
+
+        # Non-Windows: use clipboard + paste
         try:
             pyperclip.copy(processed)
         except pyperclip.PyperclipException as exc:  # pragma: no cover - clipboard edge cases
@@ -99,11 +110,8 @@ class TextInjector:
             return
         time.sleep(0.12)
         try:
-            if sys.platform.startswith("win"):
-                self._keyboard.write(processed)
-            else:
-                combo = "ctrl+v" if self._paste_mode == "ctrl" else "ctrl+shift+v"
-                self._keyboard.send(combo)
+            combo = "ctrl+v" if self._paste_mode == "ctrl" else "ctrl+shift+v"
+            self._keyboard.send(combo)
         except Exception as exc:  # pragma: no cover - runtime safety
             self._logger.error("Paste injection failed: %s", exc)
         if self._clipboard_behavior:
