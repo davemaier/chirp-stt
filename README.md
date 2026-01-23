@@ -26,15 +26,34 @@ https://huggingface.co/spaces/hf-audio/open_asr_leaderboard
 - `src/chirp/setup.py` — one-time setup routine that prepares local model assets.
 
 ## Setup (Windows, uv-only)
-1. Clone the repository and enter it:
+1. Clone the repository to your user folder:
    ```powershell
-   git clone https://github.com/Whamp/chirp.git
-   cd chirp
-   uv run python -m chirp.setup #one-time setup and model downloading
+   cd ~
+   git clone https://github.com/Whamp/chirp.git chirp-stt
+   cd chirp-stt
+   uv run python -m chirp.setup   # one-time setup and model downloading
    ```
+
+2. (Optional) Add `chirp` command to your PATH for convenience:
    
+   The repository includes a `chirp.bat` file that lets you run Chirp from anywhere by just typing `chirp`. This uses a batch file instead of PowerShell scripts, which works on corporate systems that block unsigned scripts.
+   
+   To enable it:
+   1. Open **System Properties** → **Environment Variables** (search "environment" in Start menu)
+   2. Under **User variables**, select `Path` and click **Edit**
+   3. Click **New** and add: `%USERPROFILE%\chirp-stt`
+   4. Click **OK** to save, then open a new terminal
+   
+   Now you can type `chirp` from any directory.
+
 ## Running
-- Daily usage (preferred, works even on systems that block `.exe` launchers):
+- If you set up the PATH alias:
+  ```powershell
+  chirp
+  chirp --verbose
+  chirp --help
+  ```
+- Or run directly from the chirp-stt directory:
   ```powershell
   uv run python -m chirp.main
   ```
