@@ -1,4 +1,4 @@
-primary_shortcut = "ctrl+shift"                 # Hotkey that toggles recording; any combination supported by the `keyboard` library works (e.g. "ctrl+shift+space").
+primary_shortcut = "ctrl+shift+space"             # Hotkey that toggles recording; any combination supported by the `keyboard` library works.
 stt_backend = "parakeet"                        # Only "parakeet" is bundled today, but keeping this key lets us add more backends later if needed.
 parakeet_model = "nemo-parakeet-tdt-0.6b-v3"    # Deployed ONNX bundle name; keep as-is unless new models are added.
 parakeet_quantization = "int8"                      # Set to "int8" to download/use the quantized model variant; leave blank for default fp16.
