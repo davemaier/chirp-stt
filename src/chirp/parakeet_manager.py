@@ -9,7 +9,7 @@ from typing import Optional, Sequence
 
 import numpy as np
 import onnx_asr
-from onnx_asr.loader import ModelFileNotFoundError, ModelPathNotFoundError
+from onnx_asr.loader import ModelFileNotFoundError, ModelPathNotDirectoryError
 
 try:
     import onnxruntime as ort
@@ -49,7 +49,9 @@ class ParakeetManager:
         self._stop_monitor = threading.Event()
         self._monitor_thread: Optional[threading.Thread] = None
         if self._timeout > 0:
-            self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+            self._monitor_thread = threading.Thread(
+                target=self._monitor_loop, daemon=True
+            )
             self._monitor_thread.start()
 
     def _monitor_loop(self) -> None:
@@ -66,7 +68,9 @@ class ParakeetManager:
 
     def _unload_model(self) -> None:
         with self._lock:
-            if self._model is not None and (time.time() - self._last_access > self._timeout):
+            if self._model is not None and (
+                time.time() - self._last_access > self._timeout
+            ):
                 self._logger.info("Unloading Parakeet model to free memory.")
                 self._model = None
                 gc.collect()
@@ -90,7 +94,9 @@ class ParakeetManager:
     def _build_session_options(self, threads: Optional[int]):
         if ort is None:
             if threads and threads > 0:
-                self._logger.warning("onnxruntime not available; ignoring threads=%s", threads)
+                self._logger.warning(
+                    "onnxruntime not available; ignoring threads=%s", threads
+                )
             return None
 
         options = ort.SessionOptions()
@@ -118,12 +124,18 @@ class ParakeetManager:
                 providers=self._providers,
                 sess_options=self._session_options,
             )
-        except (ModelPathNotFoundError, ModelFileNotFoundError) as exc:
+        except (ModelPathNotDirectoryError, ModelFileNotFoundError) as exc:
             raise ModelNotPreparedError(
                 f"Model not found at {self._model_dir} — run: uv run chirp-setup"
             ) from exc
 
-    def transcribe(self, audio: np.ndarray, *, sample_rate: int = 16_000, language: Optional[str] = None) -> str:
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int = 16_000,
+        language: Optional[str] = None,
+    ) -> str:
         with self._lock:
             self._last_access = time.time()
         model = self.ensure_loaded()

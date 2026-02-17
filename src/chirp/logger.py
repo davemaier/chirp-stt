@@ -13,7 +13,7 @@ def get_logger(name: str = "chirp", *, level: int = logging.INFO) -> logging.Log
         for handler in logger.handlers:
             handler.setLevel(level)
         return logger
-    console = Console(force_terminal=True)
+    console = Console()
     handler = RichHandler(console=console, show_time=True, markup=False)
     handler.setLevel(level)
     formatter = logging.Formatter("%(message)s")
@@ -25,4 +25,4 @@ def get_logger(name: str = "chirp", *, level: int = logging.INFO) -> logging.Log
 
 
 def configure_root(level: int = logging.INFO) -> None:
-    logging.basicConfig(level=level, handlers=[RichHandler(console=Console(force_terminal=True))])
+    logging.basicConfig(level=level, handlers=[RichHandler(console=Console())])

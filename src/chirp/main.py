@@ -28,7 +28,9 @@ class ChirpApp:
         self.logger = get_logger(level=level)
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load()
-        model_dir = self.config_manager.model_dir(self.config.parakeet_model, self.config.parakeet_quantization)
+        model_dir = self.config_manager.model_dir(
+            self.config.parakeet_model, self.config.parakeet_quantization
+        )
         self.logger.debug(
             "Environment: platform=%s python=%s config=%s models=%s",
             platform.platform(),
@@ -62,7 +64,11 @@ class ChirpApp:
             console = Console(stderr=True)
 
         try:
-            with console.status("[bold green]Initializing Parakeet model...[/bold green]", spinner="dots"):
+            spinner = "dots" if console.encoding == "utf-8" else "line"
+            with console.status(
+                "[bold green]Initializing Parakeet model...[/bold green]",
+                spinner=spinner,
+            ):
                 self.parakeet = ParakeetManager(
                     model_name=self.config.parakeet_model,
                     quantization=self.config.parakeet_quantization,
@@ -88,12 +94,16 @@ class ChirpApp:
         self._recording = False
         self._lock = threading.Lock()
         self._stop_timer: Optional[threading.Timer] = None
-        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="Transcriber")
+        self._executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="Transcriber"
+        )
 
     def run(self) -> None:
         try:
             self._register_hotkey()
-            self.logger.info("Chirp ready. Toggle recording with %s", self.config.primary_shortcut)
+            self.logger.info(
+                "Chirp ready. Toggle recording with %s", self.config.primary_shortcut
+            )
             self.keyboard.wait()
         except KeyboardInterrupt:
             self.logger.info("Interrupted, exiting.")
@@ -103,7 +113,9 @@ class ChirpApp:
         try:
             self.keyboard.register(self.config.primary_shortcut, self.toggle_recording)
         except Exception:
-            self.logger.error("Unable to register primary shortcut. Run as Administrator on Windows.")
+            self.logger.error(
+                "Unable to register primary shortcut. Run as Administrator on Windows."
+            )
             raise
 
     def toggle_recording(self) -> None:
@@ -153,13 +165,17 @@ class ChirpApp:
             self.logger.warning("No audio samples captured")
             return
         try:
-            text = self.parakeet.transcribe(waveform, sample_rate=16_000, language=self.config.language)
+            text = self.parakeet.transcribe(
+                waveform, sample_rate=16_000, language=self.config.language
+            )
         except Exception as exc:
             self.logger.exception("Transcription failed: %s", exc)
             self.audio_feedback.play_error(self.config.error_sound_path)
             return
         duration = time.perf_counter() - start_time
-        self.logger.debug("Transcription finished in %.2fs (chars=%s)", duration, len(text))
+        self.logger.debug(
+            "Transcription finished in %.2fs (chars=%s)", duration, len(text)
+        )
         if not text.strip():
             self.logger.info("Transcription empty; skipping paste")
             return
@@ -211,7 +227,9 @@ def _run_smoke_check(*, verbose: bool = False) -> None:
     config_manager = ConfigManager()
     config = config_manager.load()
     try:
-        model_dir = config_manager.model_dir(config.parakeet_model, config.parakeet_quantization)
+        model_dir = config_manager.model_dir(
+            config.parakeet_model, config.parakeet_quantization
+        )
         parakeet = ParakeetManager(
             model_name=config.parakeet_model,
             quantization=config.parakeet_quantization,
@@ -236,7 +254,9 @@ def _run_smoke_check(*, verbose: bool = False) -> None:
     )
 
     dummy_audio = np.zeros(16_000, dtype=np.float32)
-    transcription = parakeet.transcribe(dummy_audio, sample_rate=16_000, language=config.language)
+    transcription = parakeet.transcribe(
+        dummy_audio, sample_rate=16_000, language=config.language
+    )
     processed = text_injector.process(transcription or "test")
     logger.info("Smoke check passed. Processed sample: %s", processed)
 
