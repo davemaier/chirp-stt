@@ -27,7 +27,7 @@ From the chirp-stt directory:
 uv run python -m chirp.main
 ```
 
-Press the hotkey (default `Ctrl+Shift+Space`) to start/stop dictation. Transcribed text is typed into the active window.
+Press the hotkey (default `Ctrl+Shift+Insert`) to start/stop dictation. Transcribed text is typed into the active window.
 
 ## Autostart (optional)
 
@@ -43,7 +43,7 @@ Since there is no visible window, use Task Manager or `taskkill /f /im python.ex
 Edit `config.toml` in the repo root. It has sensible defaults but is fully customizable:
 
 ```toml
-primary_shortcut = "ctrl+shift+space"             # Hotkey that toggles recording
+primary_shortcut = "ctrl+shift+insert"             # Hotkey that toggles recording
 parakeet_quantization = ""                      # Set to "int8" for the quantized model variant
 onnx_providers = "cpu"                          # ONNX runtime provider (e.g. "cuda", "cpu|dml")
 threads = 0                                     # 0 lets ONNX decide; set a positive integer to pin thread usage
