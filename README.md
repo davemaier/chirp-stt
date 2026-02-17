@@ -34,26 +34,8 @@ https://huggingface.co/spaces/hf-audio/open_asr_leaderboard
    uv run python -m chirp.setup   # one-time setup and model downloading
    ```
 
-2. (Optional) Add `chirp` command to your PATH for convenience:
-   
-   The repository includes a `chirp.bat` file that lets you run Chirp from anywhere by just typing `chirp`. This uses a batch file instead of PowerShell scripts, which works on corporate systems that block unsigned scripts.
-   
-   To enable it:
-   1. Open **System Properties** → **Environment Variables** (search "environment" in Start menu)
-   2. Under **User variables**, select `Path` and click **Edit**
-   3. Click **New** and add: `%USERPROFILE%\chirp-stt`
-   4. Click **OK** to save, then open a new terminal
-   
-   Now you can type `chirp` from any directory.
-
 ## Running
-- If you set up the PATH alias:
-  ```powershell
-  chirp
-  chirp --verbose
-  chirp --help
-  ```
-- Or run directly from the chirp-stt directory:
+- From the chirp-stt directory:
   ```powershell
   uv run python -m chirp.main
   ```
@@ -92,8 +74,18 @@ parrakeat = "parakeet"
 "parra keat" = "parakeet"  
 ```
 
+## Autostart (optional)
+
+Chirp can start silently (no console window) every time you log in to Windows.
+
+- **Install:** double-click `install-autostart.bat` in the repo root.
+- **Remove:** double-click `uninstall-autostart.bat`, or simply delete `chirp-autostart.vbs` from your Startup folder.
+
+Since there is no visible window, use Task Manager or `taskkill /f /im python.exe` to stop Chirp.
+
 ## Removal
-- Delete the cloned `chirp` directory.
+- Run `uninstall-autostart.bat` if you installed autostart.
+- Delete the cloned `chirp-stt` directory.
 - That's it. 
 
 ### Acknowledgments
