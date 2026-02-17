@@ -26,6 +26,8 @@ https://huggingface.co/spaces/hf-audio/open_asr_leaderboard
 - `src/chirp/setup.py` — one-time setup routine that prepares local model assets.
 
 ## Setup (Windows, uv-only)
+Run the following commands in **PowerShell** (not cmd).
+
 1. Clone the repository to your user folder:
    ```powershell
    cd ~
