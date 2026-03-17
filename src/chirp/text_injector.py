@@ -105,12 +105,40 @@ class TextInjector:
     def inject(self, text: str) -> None:
         processed = self.process(text)
 
-        # On Windows, paste via clipboard (preserving existing content)
         if sys.platform.startswith("win"):
             time.sleep(0.12)  # Brief delay for focus settling
-            from .win_clipboard import paste_with_preserve
+            from .win_clipboard import (
+                _save_all_formats,
+                _set_clipboard_text,
+                _restore_all_formats,
+                _open_clipboard,
+            )
+            from . import win_clipboard
 
-            paste_with_preserve(processed, self._logger)
+            saved = _save_all_formats(self._logger)
+
+            if not _set_clipboard_text(processed):
+                self._logger.error("Failed to copy text to clipboard for pasting")
+                return
+
+            # Use the keyboard library to send Ctrl+V — it handles
+            # modifier release/restore properly unlike raw SendInput.
+            try:
+                self._keyboard.send("ctrl+v")
+            except Exception as exc:
+                self._logger.error("Paste injection failed: %s", exc)
+                return
+
+            # Give the target app time to process the paste
+            time.sleep(0.5)
+
+            # Restore previous clipboard contents
+            if saved:
+                _restore_all_formats(saved, self._logger)
+            else:
+                if _open_clipboard():
+                    win_clipboard.user32.EmptyClipboard()
+                    win_clipboard.user32.CloseClipboard()
             return
 
         # Non-Windows: use clipboard + paste

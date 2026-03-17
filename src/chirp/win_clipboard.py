@@ -21,7 +21,11 @@ import unicodedata
 # ---------------------------------------------------------------------------
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP = 0x0002
+VK_SHIFT = 0x10
 VK_CONTROL = 0x11
+VK_MENU = 0x12  # Alt
+VK_LWIN = 0x5B
+VK_RWIN = 0x5C
 VK_V = 0x56
 CF_UNICODETEXT = 13
 GMEM_MOVEABLE = 0x0002
@@ -192,8 +196,28 @@ def _set_clipboard_text(text: str) -> bool:
         user32.CloseClipboard()
 
 
+def _release_modifiers() -> None:
+    """Release any modifier keys that may still be physically held down.
+
+    When triggered by a hotkey like Ctrl+Shift+Insert, those modifier keys
+    are still in the "pressed" state.  We must release them in the input
+    queue before synthesising Ctrl+V, otherwise the target app sees
+    Ctrl+Shift+V (or worse).
+    """
+    for vk in (VK_CONTROL, VK_SHIFT, VK_MENU, VK_LWIN, VK_RWIN):
+        if user32.GetAsyncKeyState(vk) & 0x8000:
+            inp = INPUT()
+            inp.type = INPUT_KEYBOARD
+            inp.ki.wVk = vk
+            inp.ki.dwFlags = KEYEVENTF_KEYUP
+            user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(INPUT))
+    time.sleep(0.02)  # small delay to let the OS process the releases
+
+
 def _send_ctrl_v() -> None:
     """Simulate a Ctrl+V keystroke via SendInput."""
+    _release_modifiers()
+
     inputs = (INPUT * 4)()
     # Ctrl down
     inputs[0].type = INPUT_KEYBOARD
@@ -246,7 +270,7 @@ def paste_with_preserve(text: str, logger: logging.Logger) -> None:
     _send_ctrl_v()
 
     # Give the target application time to process the paste
-    time.sleep(0.05)
+    time.sleep(0.5)
 
     # Restore previous clipboard contents
     if saved:
@@ -256,3 +280,4 @@ def paste_with_preserve(text: str, logger: logging.Logger) -> None:
         if _open_clipboard():
             user32.EmptyClipboard()
             user32.CloseClipboard()
+        logger.debug("paste_with_preserve: clipboard cleared (was empty)")
