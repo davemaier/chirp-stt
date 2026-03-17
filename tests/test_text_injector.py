@@ -26,8 +26,16 @@ class TestTextInjector(unittest.TestCase):
     @patch("chirp.text_injector.pyperclip")
     def test_inject_windows_uses_clipboard_paste(self, mock_pyperclip):
         """On Windows, inject should paste via clipboard with preservation."""
-        mock_paste = MagicMock()
-        fake_module = MagicMock(paste_with_preserve=mock_paste)
+        mock_save = MagicMock(return_value=[])
+        mock_set_text = MagicMock(return_value=True)
+        mock_restore = MagicMock()
+        mock_open = MagicMock(return_value=True)
+        fake_module = MagicMock(
+            _save_all_formats=mock_save,
+            _set_clipboard_text=mock_set_text,
+            _restore_all_formats=mock_restore,
+            _open_clipboard=mock_open,
+        )
         with (
             patch("chirp.text_injector.sys.platform", "win32"),
             patch.dict("sys.modules", {"chirp.win_clipboard": fake_module}),
@@ -35,8 +43,10 @@ class TestTextInjector(unittest.TestCase):
             injector = self._create_injector()
             injector.inject("test text")
 
-            # Should delegate to paste_with_preserve
-            mock_paste.assert_called_once_with("test text", self.mock_logger)
+            # Should save clipboard, set text, and send Ctrl+V
+            mock_save.assert_called_once()
+            mock_set_text.assert_called_once_with("test text")
+            self.mock_keyboard.send.assert_called_with("ctrl+v")
 
             # Should NOT use keyboard.write (old character-by-character path)
             self.mock_keyboard.write.assert_not_called()
