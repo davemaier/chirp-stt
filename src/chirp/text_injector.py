@@ -105,19 +105,20 @@ class TextInjector:
     def inject(self, text: str) -> None:
         processed = self.process(text)
 
-        # On Windows, type directly to avoid unnecessary clipboard exposure
+        # On Windows, paste via clipboard (preserving existing content)
         if sys.platform.startswith("win"):
             time.sleep(0.12)  # Brief delay for focus settling
-            try:
-                self._keyboard.write(processed)
-            except Exception as exc:  # pragma: no cover - runtime safety
-                self._logger.error("Text injection failed: %s", exc)
+            from .win_clipboard import paste_with_preserve
+
+            paste_with_preserve(processed, self._logger)
             return
 
         # Non-Windows: use clipboard + paste
         try:
             pyperclip.copy(processed)
-        except pyperclip.PyperclipException as exc:  # pragma: no cover - clipboard edge cases
+        except (
+            pyperclip.PyperclipException
+        ) as exc:  # pragma: no cover - clipboard edge cases
             self._logger.error("Clipboard copy failed: %s", exc)
             return
         time.sleep(0.12)
@@ -153,7 +154,9 @@ class TextInjector:
     def _build_override_pattern(overrides: Dict[str, str]) -> Optional[re.Pattern[str]]:
         if not overrides:
             return None
-        escaped = sorted((re.escape(word) for word in overrides.keys()), key=len, reverse=True)
+        escaped = sorted(
+            (re.escape(word) for word in overrides.keys()), key=len, reverse=True
+        )
         pattern = r"\b(" + "|".join(escaped) + r")\b"
         return re.compile(pattern, flags=re.IGNORECASE)
 

@@ -24,16 +24,24 @@ class TestTextInjector(unittest.TestCase):
         )
 
     @patch("chirp.text_injector.pyperclip")
-    def test_inject_windows_does_not_copy_to_clipboard(self, mock_pyperclip):
-        """On Windows, inject should type directly without touching clipboard."""
-        with patch("chirp.text_injector.sys.platform", "win32"):
+    def test_inject_windows_uses_clipboard_paste(self, mock_pyperclip):
+        """On Windows, inject should paste via clipboard with preservation."""
+        mock_paste = MagicMock()
+        fake_module = MagicMock(paste_with_preserve=mock_paste)
+        with (
+            patch("chirp.text_injector.sys.platform", "win32"),
+            patch.dict("sys.modules", {"chirp.win_clipboard": fake_module}),
+        ):
             injector = self._create_injector()
             injector.inject("test text")
 
-            # Should use keyboard.write for direct typing
-            self.mock_keyboard.write.assert_called_with("test text")
+            # Should delegate to paste_with_preserve
+            mock_paste.assert_called_once_with("test text", self.mock_logger)
 
-            # Should NOT touch clipboard
+            # Should NOT use keyboard.write (old character-by-character path)
+            self.mock_keyboard.write.assert_not_called()
+
+            # Should NOT touch pyperclip directly (that's the Linux path)
             mock_pyperclip.copy.assert_not_called()
 
     @patch("chirp.text_injector.pyperclip")
