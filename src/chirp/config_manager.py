@@ -29,7 +29,7 @@ class ChirpConfig:
     paste_mode: str = "ctrl"
     clipboard_behavior: bool = True
     clipboard_clear_delay: float = 0.75
-    model_timeout: float = 300.0
+    model_timeout: float = 0
     audio_feedback: bool = True
     audio_feedback_volume: float = 1.0
     start_sound_path: Optional[str] = None
@@ -82,7 +82,9 @@ class ChirpConfig:
             )
 
         if self.model_timeout < 0:
-            raise ValueError(f"model_timeout must be non-negative, got {self.model_timeout}")
+            raise ValueError(
+                f"model_timeout must be non-negative, got {self.model_timeout}"
+            )
 
         if self.max_recording_duration < 0:
             raise ValueError(
@@ -142,7 +144,9 @@ class ConfigManager:
         return config
 
     def save(self, config: ChirpConfig) -> None:
-        raise NotImplementedError("Saving config.toml is not supported; edit the file manually.")
+        raise NotImplementedError(
+            "Saving config.toml is not supported; edit the file manually."
+        )
 
     def model_dir(self, model_name: str, quantization: Optional[str]) -> Path:
         suffix = "-int8" if (quantization or "").lower() == "int8" else ""
@@ -154,5 +158,7 @@ class ConfigManager:
         result = (self._models_root / f"{safe}{suffix}").resolve()
         # Final guard: ensure resolved path is within models_root
         if not result.is_relative_to(self._models_root.resolve()):
-            raise ValueError(f"Invalid model name: {model_name!r} escapes models directory")
+            raise ValueError(
+                f"Invalid model name: {model_name!r} escapes models directory"
+            )
         return result
